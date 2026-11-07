@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ruffle SWF Game</title>
+
+  <!-- Ruffle CDN -->
+  <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Ruffle player scaling container */
+    ruffle-player {
+      width: 100%;
+      height: 100%;
+    }
+
+    #ui {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 10;
+    }
+
+    button {
+      padding: 8px 12px;
+      margin-left: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="game-container">
+    <div id="ruffle-holder"></div>
+  </div>
+
+  <div id="ui">
+    <button onclick="toggleFullscreen()">Fullscreen</button>
+    <button onclick="clearSave()">Reset Save</button>
+  </div>
+
+  <script>
+    // ---------------------------
+    // RUFFLE SETUP
+    // ---------------------------
+    window.RufflePlayer = window.RufflePlayer || {};
+    window.RufflePlayer.config = {
+      autoplay: "on",
+      unmuteOverlay: "hidden",
+      backgroundColor: "#000000",
+      letterbox: "on",
+      scale: "showAll" // important for auto scaling
+    };
+
+    const ruffle = window.RufflePlayer.newest();
+    const player = ruffle.createPlayer();
+
+    document.getElementById("ruffle-holder").appendChild(player);
+
+    // Load your SWF here
+    player.load("age_of_war.swf");
+
+    // ---------------------------
+    // RESPONSIVE SCALING
+    // ---------------------------
+    function resizeGame() {
+      const holder = document.getElementById("ruffle-holder");
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      holder.style.width = w + "px";
+      holder.style.height = h + "px";
+    }
+
+    window.addEventListener("resize", resizeGame);
+    resizeGame();
+
+    // ---------------------------
+    // FULLSCREEN
+    // ---------------------------
+    function toggleFullscreen() {
+      const elem = document.documentElement;
+
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // ---------------------------
+    // SAVE DATA HANDLING
+    // ---------------------------
+    const SAVE_KEY = "ruffle_game_save";
+
+    // Example: store external save data (if you mirror game state manually)
+    function saveData(data) {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    }
+
+    function loadData() {
+      const raw = localStorage.getItem(SAVE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }
+
+    function clearSave() {
+      localStorage.removeItem(SAVE_KEY);
+      alert("Save cleared!");
+    }
+
+    // OPTIONAL: expose to SWF via JS bridge (if game supports ExternalInterface)
+    window.saveFromGame = function(data) {
+      saveData(data);
+    };
+
+    window.loadToGame = function() {
+      return loadData();
+    };
+
+    // ---------------------------
+    // OPTIONAL AUTO-BACKUP SYSTEM
+    // (helps preserve Ruffle SharedObject data)
+    // ---------------------------
+    setInterval(() => {
+      // backup all localStorage under a namespace
+      const backup = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) backup[key] = localStorage.getItem(key);
+      }
+      localStorage.setItem("ruffle_backup", JSON.stringify(backup));
+    }, 5000);
+  </script>
+</body>
+</html>
